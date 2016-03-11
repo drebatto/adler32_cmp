@@ -56,10 +56,11 @@ main(int argc, char **argv)
     int verbose = 0;
     int interactive = 0;
     int setchecksum = 0;
+    int deletebad = 0;
     char *attrname = "user.storm.checksum.adler32";
     char *filename;
     int exitcode = EXIT_SUCCESS;
-    char answ = 'n';
+    char answ;
     int in_file;
     char saved[ADLSIZE];
     ssize_t attrlen;
@@ -74,7 +75,7 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    while((opt = getopt(argc, argv, "vicn:")) != -1) {
+    while((opt = getopt(argc, argv, "vicdn:")) != -1) {
         switch (opt) {
         case 'v':
             /* Produce more output (namely, both checksums are printed) */
@@ -89,8 +90,12 @@ main(int argc, char **argv)
             /* Set/replace the stored checksum with the computed one */
             setchecksum = 1;
             break;
+        case 'd':
+            /* Delete unreadable files */
+            deletebad = 1;
+            break;
         case 'n':
-            /* Change the default checksum attribute name */
+            /* Use a different checksum attribute name */
             attrname = optarg;
             break;
         case '?':
@@ -99,7 +104,7 @@ main(int argc, char **argv)
     }
 
     if (optind == argc) {
-        fprintf(stderr, "Usage: %s [-v | -i] [-c] [-n <attribute_name>] <file> ...\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-v | -i] [-c] [-d] [-n <attribute_name>] <file> ...\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -121,12 +126,13 @@ main(int argc, char **argv)
         /* Compute the adler32 for the file on disk */
         if (get_adler32(in_file, &computed)) {
             exitcode = (errno == EIO) ? ERROR_IOERR : EXIT_FAILURE;
-            if ((errno == EIO) && interactive) {
-                printf("I/O error: remove the file? [y/N] "); 
-                answ = getchar();
-                if (answ == 'y')
-                {
-                    close(in_file);
+            if (errno == EIO) {
+                if (interactive) {
+                    answ = 'n';
+                    fprintf(stderr, "I/O error: remove the file? [y/N] "); 
+                    answ = getchar();
+                }
+                if (deletebad || answ == 'y' || answ == 'Y') {
                     unlink(filename);
                 }
             } else if ((errno == EISDIR) && verbose) {
