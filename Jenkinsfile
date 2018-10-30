@@ -3,10 +3,10 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh 'make'
+        sh '/usr/bin/make'
       }
     }
-    stage('') {
+    stage('error') {
       steps {
         archiveArtifacts 'adler32_cmp'
       }
