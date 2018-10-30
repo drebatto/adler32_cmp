@@ -3,7 +3,7 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        sh '/usr/bin/make'
+        sh '/bin/make'
       }
     }
     stage('error') {
